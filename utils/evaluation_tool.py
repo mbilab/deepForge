@@ -8,6 +8,7 @@ from .util import load_mnist, onehot
 
 
 class Evaluator:
+
     def __init__(self, gen_model, gen_mask_model, mnist_model='./outputs/D_digit.hdf5'):
         self.G = load_model(gen_model)
         self.G_mask = load_model(gen_mask_model)
@@ -54,27 +55,31 @@ class Evaluator:
             self._plot_fig(img, mask, add, text)
 
 
-class Sampler:
+class Sampler: # {{{
+
     def __init__(self, data='test'):
-        if data == 'test':
-            _, _, self.imgs, self.digits = load_mnist()
+        if 'test' == data:
+            _, _, self.images, self.digits = load_mnist()
         else:
-            self.imgs, self.digits, _, _ = load_mnist()
-        self.set = {i: [] for i in range(10)}
-        for img, digit in zip(self.imgs, self.digits):
-            self.set[digit].append(img)
+            self.images, self.digits, _, _ = load_mnist()
+        self.images_by_digit = [[]] * 10
+        for image, digit in zip(self.images, self.digits):
+            self.images_by_digit[digit].append(image)
+        for digit in range(10):
+            self.images_by_digit[digit] = np.array(self.images_by_digit[digit])
 
-    def sample(self, batch_size=10, idx=None):
-        idx = np.array( list(range(batch_size)) if idx is None else idx )
-        return self.imgs[idx], self.digits[idx]
+    def sample(self, index):
+        return self.images[index], self.digits[index]
 
-    def sample_by_key(self, key, batch_size=10, idx=None):
-        idx = np.array( list(range(batch_size)) if idx is None else idx )
-        return np.array(self.set[key])[idx], [key]*batch_size
+    def sample_by_digit(self, digit, index):
+        images = self.images_by_digit[digit][index]
+        return images, [digit] * len(images)
+# }}}
 
 
 def acc(x, y):
     return np.sum(x==y, axis=1)
+
 
 def evaluate_model(G):
     s = Sampler()
@@ -91,6 +96,7 @@ def evaluate_model(G):
     for i in range(10): # substract hits on the same number
         total_score -= hit_amount[i, i]
     return hit_amount, hit_rate, total_score
+
 
 def plot_matrix(m, save_dir=None):
     fig, ax = plt.subplots()
@@ -115,4 +121,3 @@ if '__main__' == __name__:
     c.add_imgs(imgs, labels, [4]*len(imgs))
     res = c.score()
     print(res)
-

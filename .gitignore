@@ -1,12 +1,13 @@
 imgs/
 imgs_lifu/
-__pycache__/
+.ipynb_checkpoints/
 logs/
 models/
-*.png
 outputs/
 outputs
+*.png
+__pycache__/
 pytorch/imgs/
 pytorch/models/
 pytorch/info_imgs/
-.ipynb_checkpoints/
+.venv

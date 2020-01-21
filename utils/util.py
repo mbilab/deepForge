@@ -4,20 +4,26 @@ import os
 from matplotlib import pyplot as plt
 from keras.models import load_model
 
-def load_mnist():
-    (xtrain, ytrain), (xtest, ytest) = mnist.load_data()
-    # pad to 32*32 and normalize to 0~1
-    xtrain = np.pad(xtrain, ((0,0),(2,2),(2,2)), 'constant') / 255
-    xtest = np.pad(xtest, ((0,0),(2,2),(2,2)), 'constant') / 255
-    # expand channel dim
-    xtrain, xtest = xtrain[:, :, :, np.newaxis], xtest[:, :, :, np.newaxis]
 
-    return xtrain, ytrain, xtest, ytest
+def load_mnist(): # {{{
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    # pad to 32*32 (from 28*28) and normalize to 0~1
+    # the shape of `x_train` and `x_test` is (#sample, height, width)
+    # so only the last two axes have to be padded
+    x_train = np.pad(x_train, ((0, 0), (2, 2), (2, 2)), 'constant') / 255
+    x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2)), 'constant') / 255
+    # expand channel dim
+    x_train, x_test = x_train[:, :, :, np.newaxis], x_test[:, :, :, np.newaxis]
+
+    return x_train, y_train, x_test, y_test
+# }}}
+
 
 def onehot(x, size):
     result = np.zeros((x.size, size))
     result[np.arange(x.size), x] = 1
     return result
+
 
 def plot_table(G, name, random=True, save=False):
     if type(G) == str:
@@ -43,6 +49,7 @@ def plot_table(G, name, random=True, save=False):
 
     if save:
         fig.savefig(name, dpi=150)
+
 
 def plot_fig(G, G_mask, n, t):
 
