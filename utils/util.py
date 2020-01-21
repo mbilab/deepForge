@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from keras.models import load_model
 
 
+#! where here?
 def load_mnist(): # {{{
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     # pad to 32*32 (from 28*28) and normalize to 0~1
@@ -19,10 +20,12 @@ def load_mnist(): # {{{
 # }}}
 
 
-def onehot(x, size):
-    result = np.zeros((x.size, size))
-    result[np.arange(x.size), x] = 1
-    return result
+#! where here?
+def onehot(x, size): # {{{
+    x2 = np.zeros((x.size, size))
+    x2[range(x2.size), x] = 1
+    return x2
+# }}}
 
 
 def plot_table(G, name, random=True, save=False):

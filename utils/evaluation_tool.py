@@ -14,18 +14,19 @@ class Evaluator:
         self.G_mask = load_model(gen_mask_model)
         self.clf = load_model(mnist_model)
 
-    def run(self, imgs, targets):
-        self.imgs, self.targets = imgs, targets
-        onehot_targets = onehot(np.array(targets), 10)
-        self.adds = self.G.predict([imgs, onehot_targets])
-        self.masks = self.G_mask.predict([imgs, onehot_targets])
-
     def classify(self, imgs):
         if imgs.ndim < 4:
             imgs = imgs[np.newaxis, :]
         clf_prob = self.clf.predict(imgs)
         clf_res = np.argmax(clf_prob, axis=1)
         return clf_res
+
+    def run(self, images, digits):
+        self.images, self.digits = images, digits
+        onehot_digits = onehot(np.array(digits), 10)
+        #! why two models?
+        self.adds = self.G.predict([images, onehot_digits])
+        self.masks = self.G_mask.predict([images, onehot_digits])
 
     def score(self):
         clf_res = self.classify(self.adds)
@@ -55,6 +56,7 @@ class Evaluator:
             self._plot_fig(img, mask, add, text)
 
 
+#! why here?
 class Sampler: # {{{
 
     def __init__(self, data='test'):
@@ -62,7 +64,7 @@ class Sampler: # {{{
             _, _, self.images, self.digits = load_mnist()
         else:
             self.images, self.digits, _, _ = load_mnist()
-        self.images_by_digit = [[]] * 10
+        self.images_by_digit = [[] for _ in range(10)]
         for image, digit in zip(self.images, self.digits):
             self.images_by_digit[digit].append(image)
         for digit in range(10):
