@@ -26,7 +26,7 @@ class Evaluator:
     def run(self, images, digits):
         self.images = images
         self.digits = np.full(len(images), digits) if int == type(digits) else digits
-        onehot_digits = onehot(np.array(digits), 10)
+        onehot_digits = onehot(np.array(self.digits), 10)
         #! why two models?
         self.adds = self.G.predict([images, onehot_digits])
         self.masks = self.G_mask.predict([images, onehot_digits])
@@ -122,7 +122,7 @@ def load_mnist(): # {{{
 #! where here?
 def onehot(x, size): # {{{
     x2 = np.zeros((x.size, size))
-    x2[range(x2.size), x] = 1
+    x2[range(x.size), x] = 1
     return x2
 # }}}
 
