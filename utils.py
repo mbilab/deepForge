@@ -15,10 +15,10 @@ class Evaluator:
         self.G_mask = load_model(gen_mask_model)
         self.clf = load_model(mnist_model)
 
-    def classify(self, imgs):
-        if imgs.ndim < 4:
-            imgs = imgs[np.newaxis, :]
-        clf_prob = self.clf.predict(imgs)
+    def classify(self, images):
+        if images.ndim < 4:
+            images = images[np.newaxis, :]
+        clf_prob = self.clf.predict(images)
         clf_res = np.argmax(clf_prob, axis=1)
         return clf_res
 
@@ -59,7 +59,7 @@ class Evaluator:
             fig = self._plot_fig(image, mask, add, **kwargs)
             print(text)
             fig.show()
-            # fig.savefig(f'./tmp/img_{n:03}.png')
+            # fig.savefig(f'./tmp/image_{n:03}.png')
             n += 1
     # }}}
 
@@ -77,11 +77,16 @@ class Sampler: # {{{
         for digit in range(10):
             self.images_by_digit[digit] = np.array(self.images_by_digit[digit])
 
-    def sample(self, index):
+    def sample(self, index=None):
+        if index is None:
+            return self.images, self.digits
         return self.images[index], self.digits[index]
 
-    def sample_by_digit(self, digit, index):
-        images = self.images_by_digit[digit][index]
+    def sample_by_digit(self, digit, index=None):
+        if index is None:
+            images = self.images_by_digit[digit]
+        else:
+            images = self.images_by_digit[digit][index]
         return images, [digit] * len(images)
 # }}}
 
@@ -95,8 +100,8 @@ def evaluate_model(G):
     hit_amount, hit_rate = np.zeros((10, 10)), np.zeros((10, 10))
     for input_number in range(10):
         for target_number in range(10):
-            imgs = np.array(s.set[input_number])
-            e.run(imgs, [target_number]*len(imgs))
+            images, digits = s.sample_by_digit(input_number)
+            e.run(images, digits)
             score = e.score()
             hit_amount[input_number, target_number] = score['hit_amount']
             hit_rate[input_number, target_number] = score['hit_rate']
@@ -131,45 +136,27 @@ def onehot(x, size): # {{{
 def plot_table(G, name, random=True, save=False):
     if type(G) == str:
         G = load_model(G)
-    _, _, imgs, digits = load_mnist()
-    input_imgs = [] # imgs of 0 ~ 9
+    _, _, images, digits = load_mnist()
+    input_images = [] # images of 0 ~ 9
     for i in range(10):
-        imgs_filtered = imgs[np.where(digits == i)[0]]
+        images_filtered = images[np.where(digits == i)[0]]
         if random:
-            idx = np.random.randint(0, imgs_filtered.shape[0])
+            idx = np.random.randint(0, images_filtered.shape[0])
         else:
             idx = 0
-        input_imgs.append(imgs_filtered[idx])
+        input_images.append(images_filtered[idx])
 
     fig, axs = plt.subplots(10, 10)
     fig.set_size_inches(50, 50)
-    for i in range(10): # for input img
+    for i in range(10): # for input image
         for j in range(10): # for target digit
-            gen_img = G.predict([np.expand_dims(input_imgs[i], axis=0), onehot(np.full((1, 1), j), 10)])
-            axs[i, j].imshow(gen_img[0, :, :, 0], cmap='gray')
+            gen_image = G.predict([np.expand_dims(input_images[i], axis=0), onehot(np.full((1, 1), j), 10)])
+            axs[i, j].imshow(gen_image[0, :, :, 0], cmap='gray')
             axs[i, j].axis('off')
     plt.show()
 
     if save:
         fig.savefig(name, dpi=150)
-
-
-def plot_fig(G, G_mask, n, t):
-
-    _, _, imgs, digits = load_mnist()
-
-    target = onehot(np.full((1, 1), t), 10)
-    use_img = imgs[n][np.newaxis, ...]
-    gen_img = G.predict([use_img, target])
-    mask_img = G_mask.predict([use_img, target])
-    fig, axs = plt.subplots(1, 3, figsize=(4, 3))
-    axs[0].imshow(use_img[0, :, :, 0], cmap='gray')
-    axs[0].axis('off')
-    axs[1].imshow(mask_img[0, :, :, 0], cmap='gray')
-    axs[1].axis('off')
-    axs[2].imshow(gen_img[0, :, :, 0], cmap='gray')
-    axs[2].axis('off')
-    fig.savefig(os.path.join(f'./tmp/fig_{n}_{t}'))
 
 
 def plot_matrix(m, save_dir=None):
