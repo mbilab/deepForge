@@ -11,8 +11,7 @@ import numpy as np
 
 class Evaluator:
 
-    def __init__(self, gen_model, gen_mask_model, mnist_model='./outputs/D_digit.hdf5'):
-        self.G = load_model(gen_model)
+    def __init__(self, gen_mask_model, mnist_model='./outputs/D_digit.hdf5'):
         self.G_mask = load_model(gen_mask_model)
         self.clf = load_model(mnist_model)
 
@@ -27,10 +26,10 @@ class Evaluator:
         self.images = images
         self.digits = np.full(len(images), digits) if int == type(digits) else digits
         onehot_digits = onehot(np.array(self.digits), 10)
-        #! why two models?
-        self.adds = self.G.predict([images, onehot_digits])
         self.masks = self.G_mask.predict([images, onehot_digits])
+        self.adds = np.clip(self.masks + images, 0, 1)
         self.predicted_digits = self.classify(self.adds)
+
 
     def score(self): # {{{
         hits = self.predicted_digits == self.digits
