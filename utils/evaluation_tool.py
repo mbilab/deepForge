@@ -22,38 +22,43 @@ class Evaluator:
         return clf_res
 
     def run(self, images, digits):
-        self.images, self.digits = images, digits
+        self.images = images
+        self.digits = np.full(len(images), digits) if int == type(digits) else digits
         onehot_digits = onehot(np.array(digits), 10)
         #! why two models?
         self.adds = self.G.predict([images, onehot_digits])
         self.masks = self.G_mask.predict([images, onehot_digits])
+        self.predicted_digits = self.classify(self.adds)
 
-    def score(self):
-        clf_res = self.classify(self.adds)
+    def score(self): # {{{
+        hits = self.predicted_digits == self.digits
         return {
-            'samples': len(clf_res),
-            'hit_rate': np.mean(clf_res==self.targets),
-            'hit_amount': np.sum(clf_res==self.targets)
+            '#samples': len(self.images),
+            '#hits': np.sum(hits),
+            '%hit': np.mean(hits),
         }
+    # }}}
 
-    def _plot_fig(self, img, mask, add, text=None):
-        fig, axs = plt.subplots(1, 3, figsize=(4, 3))
-        axs[0].imshow(img[:, :, 0], cmap='gray')
-        axs[0].axis('off')
-        axs[1].imshow(mask[:, :, 0], cmap='gray')
-        axs[1].axis('off')
-        axs[2].imshow(add[:, :, 0], cmap='gray')
-        axs[2].axis('off')
-        if text is not None:
-            axs[2].title.set_text(text)
-        fig.show()
-        return fig
+    def _plot_fig(self, image, mask, add, dpi=96, text=None, wspace=.02): # {{{
+        plt.figure(dpi=dpi, figsize=(3, 1))
+        plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=wspace, hspace=0)
+        for i, _image in enumerate([image, mask, add]):
+            plt.subplot(1, 3, i+1)
+            ax = plt.gca()
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+            # _image[:, :, 0] converts shape from 32x32x1 to 32x32
+            plt.imshow(_image[:, :, 0], cmap='gray')
+        if text:
+            plt.title(text)
+        plt.show()
+    # }}}
 
-    def plot_all(self):
-        for img, mask, add, target in zip(self.imgs, self.masks, self.adds, self.targets):
-            clf_res = self.classify(add)
-            text = f'fail as {clf_res}' if clf_res != target else 'success'
-            self._plot_fig(img, mask, add, text)
+    def plot_all(self, **kwargs): # {{{
+        for image, mask, add, digit, predicted_digit in zip(self.images, self.masks, self.adds, self.digits, self.predicted_digits):
+            text = 'success' if predicted_digit == digit else f'fail: {predicted_digit}'
+            self._plot_fig(image, mask, add, text=text, **kwargs)
+    # }}}
 
 
 #! why here?

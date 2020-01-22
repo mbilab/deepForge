@@ -23,7 +23,7 @@ def load_mnist(): # {{{
 #! where here?
 def onehot(x, size): # {{{
     x2 = np.zeros((x.size, size))
-    x2[range(x2.size), x] = 1
+    x2[range(x.size), x] = 1
     return x2
 # }}}
 
