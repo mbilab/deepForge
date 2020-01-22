@@ -41,25 +41,27 @@ class Evaluator:
         }
     # }}}
 
-    def _plot_fig(self, image, mask, add, dpi=96, text=None, wspace=.02): # {{{
-        plt.figure(dpi=dpi, figsize=(3, 1))
-        plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=wspace, hspace=0)
+    def _plot_fig(self, image, mask, add, dpi=96, wspace=.02): # {{{
+        fig = plt.figure(dpi=dpi, figsize=(96./dpi, 32./dpi))
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=wspace, hspace=0)
         for i, _image in enumerate([image, mask, add]):
-            plt.subplot(1, 3, i+1)
-            ax = plt.gca()
+            ax = fig.add_subplot(1, 3, i+1)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
             # _image[:, :, 0] converts shape from 32x32x1 to 32x32
-            plt.imshow(_image[:, :, 0], cmap='gray')
-        if text:
-            plt.title(text)
-        plt.show()
+            ax.imshow(_image[:, :, 0], cmap='gray')
+        return fig
     # }}}
 
-    def plot_all(self, **kwargs): # {{{
+    def plot_all(self, pad_inches=None, **kwargs): # {{{
+        n = 0
         for image, mask, add, digit, predicted_digit in zip(self.images, self.masks, self.adds, self.digits, self.predicted_digits):
             text = 'success' if predicted_digit == digit else f'fail: {predicted_digit}'
-            self._plot_fig(image, mask, add, text=text, **kwargs)
+            fig = self._plot_fig(image, mask, add, **kwargs)
+            print(text)
+            fig.show()
+            # fig.savefig(f'./tmp/img_{n:03}.png')
+            n += 1
     # }}}
 
 #! why here?
