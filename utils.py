@@ -11,25 +11,28 @@ import numpy as np
 
 class Evaluator:
 
-    def __init__(self, gen_mask_model, mnist_model='./outputs/D_digit.hdf5'):
-        self.G_mask = load_model(gen_mask_model)
-        self.clf = load_model(mnist_model)
+    def __init__(self, overlay_generator, mnist_classifier='./outputs/D_digit.hdf5'): # {{{
+        self.overlay_generator = load_model(overlay_generator)
+        self.mnist_classifier = load_model(mnist_classifier)
+    # }}}
 
-    def classify(self, images):
-        if images.ndim < 4:
+    def classify(self, images): # {{{
+        if images.ndim < 4: # if `images` has no channel dimension
+            # add the channel dimension
+            # i.e. convert shape from (#samples, 32, 32) to (#samples, 32, 32, 1)
             images = images[np.newaxis, :]
-        clf_prob = self.clf.predict(images)
-        clf_res = np.argmax(clf_prob, axis=1)
-        return clf_res
+        prob = self.mnist_classifier.predict(images)
+        return np.argmax(prob, axis=1)
+    # }}}
 
-    def run(self, images, digits):
+    def run(self, images, digits): # {{{
         self.images = images
         self.digits = np.full(len(images), digits) if int == type(digits) else digits
         onehot_digits = onehot(np.array(self.digits), 10)
-        self.masks = self.G_mask.predict([images, onehot_digits])
-        self.adds = np.clip(self.masks + images, 0, 1)
-        self.predicted_digits = self.classify(self.adds)
-
+        self.overlays = self.overlay_generator.predict([images, onehot_digits])
+        self.blent_images = np.clip(images + self.overlays, 0, 1)
+        self.predicted_digits = self.classify(self.blent_images)
+    # }}}
 
     def score(self): # {{{
         hits = self.predicted_digits == self.digits
@@ -40,30 +43,48 @@ class Evaluator:
         }
     # }}}
 
-    def _plot_fig(self, image, mask, add, dpi=96, wspace=.02): # {{{
-        fig = plt.figure(dpi=dpi, figsize=(96./dpi, 32./dpi))
-        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=wspace, hspace=0)
-        for i, _image in enumerate([image, mask, add]):
+    def plot_image( # {{{
+        self, image, overlay, blent_image,
+        dpi=1, height=64, title=None, width=192):
+
+        # one can use `dpi` to control the margin
+        # for example, set `dpi` to 1 to remove margin
+        # however, title cannot be displayed under small `dpi` because of fontsize issue
+        # if you need title, set `dpi` >= 10 is suggested in practice
+        if title and dpi < 10:
+            dpi = 10
+
+        fig = plt.figure(dpi=dpi, figsize=(width/dpi, height/dpi))
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+        for i, _image in enumerate([image, overlay, blent_image]):
             ax = fig.add_subplot(1, 3, i+1)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
+            if i: # plot a left border except the leftest subplot
+                plt.plot([0, 0], [0, 32], color='white', linewidth=50/dpi)
             # _image[:, :, 0] converts shape from 32x32x1 to 32x32
-            ax.imshow(_image[:, :, 0], cmap='gray')
+            plt.imshow(_image[:, :, 0], cmap='gray')
+        if title:
+            title = plt.suptitle(title)
+            plt.setp(title, color='white', fontsize=1000/dpi)
         return fig
     # }}}
 
-    def plot_all(self, pad_inches=None, **kwargs): # {{{
-        n = 0
-        for image, mask, add, digit, predicted_digit in zip(self.images, self.masks, self.adds, self.digits, self.predicted_digits):
-            text = 'success' if predicted_digit == digit else f'fail: {predicted_digit}'
-            fig = self._plot_fig(image, mask, add, **kwargs)
-            print(text)
+    def plot_images(self, title=True, **kwargs): # {{{
+        for i, image, overlay, blent_image, digit, predicted_digit in zip(
+                range(len(self.images)),
+                self.images, self.overlays, self.blent_images,
+                self.digits, self.predicted_digits):
+            if title:
+                title = 'ok' if predicted_digit == digit else f'no: {predicted_digit}'
+            else:
+                title = None
+            fig = self.plot_image(image, overlay, blent_image, title=title, **kwargs)
             fig.show()
-            # fig.savefig(f'./tmp/image_{n:03}.png')
-            n += 1
+            # fig.savefig(f'./tmp/image_{i:03}.png')
     # }}}
 
-#! why here?
+
 class Sampler: # {{{
 
     def __init__(self, data='test'):
@@ -90,6 +111,7 @@ class Sampler: # {{{
         return images, [digit] * len(images)
 # }}}
 
+
 def acc(x, y):
     return np.sum(x==y, axis=1)
 
@@ -110,7 +132,7 @@ def evaluate_model(G):
         total_score -= hit_amount[i, i]
     return hit_amount, hit_rate, total_score
 
-#! where here?
+
 def load_mnist(): # {{{
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     # pad to 32*32 (from 28*28) and normalize to 0~1
@@ -125,7 +147,6 @@ def load_mnist(): # {{{
 # }}}
 
 
-#! where here?
 def onehot(x, size): # {{{
     x2 = np.zeros((x.size, size))
     x2[range(x.size), x] = 1
