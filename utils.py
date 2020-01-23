@@ -45,7 +45,7 @@ class Evaluator:
 
     def plot_image( # {{{
         self, image, overlay, blent_image,
-        dpi=1, height=64, title=None, width=192):
+        dpi=1, image_size=64, title=None):
 
         # one can use `dpi` to control the margin
         # for example, set `dpi` to 1 to remove margin
@@ -54,19 +54,23 @@ class Evaluator:
         if title and dpi < 10:
             dpi = 10
 
-        fig = plt.figure(dpi=dpi, figsize=(width/dpi, height/dpi))
+        # control `linewidth`, `fontsize` according to image size
+        # they are adjusted when image_size is 64 pixels
+        scale = image_size / 64.
+
+        fig = plt.figure(dpi=dpi, figsize=(3*image_size/dpi, image_size/dpi))
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         for i, _image in enumerate([image, overlay, blent_image]):
             ax = fig.add_subplot(1, 3, i+1)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
             if i: # plot a left border except the leftest subplot
-                plt.plot([0, 0], [0, 32], color='white', linewidth=50/dpi)
+                plt.plot([0, 0], [0, 32], color='white', linewidth=5*scale)
             # _image[:, :, 0] converts shape from 32x32x1 to 32x32
             plt.imshow(_image[:, :, 0], cmap='gray')
         if title:
             title = plt.suptitle(title)
-            plt.setp(title, color='white', fontsize=1000/dpi)
+            plt.setp(title, color='white', fontsize=100*scale)
         return fig
     # }}}
 
